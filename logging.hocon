@@ -77,13 +77,21 @@
             "propagate": "no"
         },
 
+        "coded_tools": {
+            "level": "DEBUG",
+            "handlers": [
+                "console"
+            ],
+            "propagate": false
+        }
+
         # Quiet some noisy loggers
         "TempNetworkStorageUpdater": {
             "level": "WARNING",
             "handlers": [
                 "console"
             ],
-            "propagate": "no"
+            "propagate": false
         },
     },
 
