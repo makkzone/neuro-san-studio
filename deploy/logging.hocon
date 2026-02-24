@@ -75,7 +75,14 @@
                 "console"
             ],
             "propagate": "no"
-        }
+        },
+        "TempNetworkStorageUpdater": {
+            "level": "WARNING",
+            "handlers": [
+                "console"
+            ],
+            "propagate": "no"
+        },
     },
 
     # Configuration for the root logger.
