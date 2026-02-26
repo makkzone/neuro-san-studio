@@ -41,8 +41,7 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: |
-          apt-get update && apt-get install --yes shellcheck make curl
-          curl --silent --location https://github.com/lycheeverse/lychee/releases/download/lychee-v0.23.0/lychee-x86_64-unknown-linux-gnu.tar.gz | tar --extract --gzip --directory /usr/local/bin
+          apt-get update && apt-get install -y shellcheck make
           python -m venv venv
           source venv/bin/activate
           pip install -r requirements-build.txt
@@ -61,6 +60,12 @@ jobs:
         run: |
           source venv/bin/activate 
           make lint-check
+
+      - name: Run link checker
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: '--exclude-path venv ./**/*.md'
+          fail: true
 
       - name: Run make test
         shell: bash
