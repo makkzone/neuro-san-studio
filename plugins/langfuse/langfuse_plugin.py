@@ -15,17 +15,12 @@
 # END COPYRIGHT
 import logging
 import os
+from typing import Any
 from typing import Optional
+from typing import Type
 
-try:
-    from langfuse import Langfuse
-    from langfuse.openai import openai as langfuse_openai
-    from langfuse.decorators import langfuse_context, observe
-except Exception:  # pragma: no cover
-    Langfuse = None  # type: ignore
-    langfuse_openai = None  # type: ignore
-    langfuse_context = None  # type: ignore
-    observe = None  # type: ignore
+# Use lazy loading of types to avoid dependency bloat for stuff most people don't need.
+from leaf_common.config.resolver_util import ResolverUtil
 
 
 class LangfusePlugin:
@@ -95,6 +90,14 @@ class LangfusePlugin:
         - Project/release metadata
         - Debug settings
         """
+        # Lazily load Langfuse class
+        # pylint: disable=invalid-name
+        Langfuse: Type[Any] = ResolverUtil.create_type(
+            "langfuse.Langfuse",
+            raise_if_not_found=False,
+            install_if_missing="langfuse",
+        )
+        
         if Langfuse is None:  # pragma: no cover
             self._logger.warning("Langfuse package not installed")
             return
@@ -120,50 +123,52 @@ class LangfusePlugin:
             )
             self._logger.info("Langfuse client configured successfully")
             
-            # Set up global context for decorators
-            if langfuse_context is not None:
-                import sys
-                sys.modules['langfuse']._client = self.langfuse_client
+            # Patch OpenAI module globally to use Langfuse's instrumented version
+            self._patch_openai_module()
                 
         except Exception as exc:  # pragma: no cover
             self._logger.error("Failed to configure Langfuse client: %s", exc)
 
     @staticmethod
+    def _patch_openai_module() -> None:
+        """Patch the openai module with Langfuse's instrumented version.
+        
+        This replaces the global openai module so that all OpenAI calls
+        are automatically traced by Langfuse.
+        """
+        try:
+            import sys
+            import importlib
+            
+            # Import langfuse.openai module (not a class, so we use importlib)
+            langfuse_openai_module = importlib.import_module('langfuse.openai')
+            
+            # The module contains an 'openai' attribute which is the patched openai module
+            if hasattr(langfuse_openai_module, 'openai'):
+                # Replace the openai module with Langfuse's version
+                sys.modules['openai'] = langfuse_openai_module.openai
+                print("[Langfuse] OpenAI module globally patched for automatic tracing")
+            else:
+                print("[Langfuse] Warning: langfuse.openai module structure unexpected")
+        except Exception as exc:  # pragma: no cover
+            print(f"[Langfuse] Failed to patch OpenAI module: {exc}")
+
+    @staticmethod
     def _instrument_sdks() -> None:
         """Instrument various AI/ML SDKs for tracing.
 
-        Instruments:
-        - OpenAI (via langfuse.openai)
-        - LangChain (via LangfuseCallbackHandler)
-        - Anthropic (if supported)
-
-        Failures are silently ignored to allow partial instrumentation.
+        Note: Langfuse uses a different instrumentation approach than Phoenix.
+        - OpenAI: Patched globally via _patch_openai_module() during client configuration
+        - LangChain: Use get_callback_handler() to get callbacks for LangChain chains
+        - Custom functions: Use @observe decorator from langfuse.decorators
+        
+        The OpenAI module patching is done in _patch_openai_module() which is called
+        from _configure_langfuse_client() to ensure it happens after the client is set up.
         """
-        # Instrument OpenAI by monkey-patching the openai module
-        try:
-            import sys
-            if langfuse_openai is not None:
-                # Replace the openai module with Langfuse's instrumented version
-                sys.modules['openai'] = langfuse_openai
-                print("[Langfuse] OpenAI module instrumented")
-        except Exception as exc:  # pragma: no cover
-            print(f"[Langfuse] Failed to instrument OpenAI: {exc}")
-
-        # Instrument Anthropic using Langfuse's wrapper
-        try:
-            from langfuse.anthropic import Anthropic as LangfuseAnthropic
-            import sys
-            # Note: This is experimental and may not work for all use cases
-            # Anthropic instrumentation may require manual integration
-        except Exception:  # pragma: no cover
-            pass
-
-        # LangChain instrumentation is typically done via callback handlers
-        # which are added at runtime, so we just verify availability here
-        try:
-            from langfuse.callback import CallbackHandler  # type: ignore
-        except Exception:  # pragma: no cover
-            pass
+        print("[Langfuse] SDK instrumentation ready")
+        print("[Langfuse] - OpenAI calls will be automatically traced")
+        print("[Langfuse] - Use get_callback_handler() for LangChain integration")
+        print("[Langfuse] - Use @observe decorator for custom function tracing")
 
     def _try_langfuse_setup(self) -> bool:
         """Try setting up Langfuse with automatic instrumentation.
@@ -286,8 +291,17 @@ class LangfusePlugin:
             return None
 
         try:
-            from langfuse.langchain import CallbackHandler
-            return CallbackHandler()
+            # Lazily load CallbackHandler
+            # pylint: disable=invalid-name
+            CallbackHandler: Type[Any] = ResolverUtil.create_type(
+                "langfuse.callback.CallbackHandler",
+                raise_if_not_found=False,
+                install_if_missing="langfuse",
+            )
+            
+            if CallbackHandler is not None:
+                return CallbackHandler()
+            return None
         except Exception as exc:  # pragma: no cover
             self._logger.warning("Failed to create Langfuse callback handler: %s", exc)
             return None
