@@ -147,17 +147,15 @@ class PersistAgentNetwork(CodedTool):
         if isinstance(persisted_reference, list):
             sly_data["agent_reservations"] = persisted_reference
 
-        if isinstance(assembler, HoconAgentNetworkAssembler):
-            # We already have the HOCON content, no need to re-assemble.
-            sly_data[AGENT_NETWORK_HOCON_TEXT] = persisted_content
-        else:
+        hocon_text: str = persisted_content
+        if not isinstance(assembler, HoconAgentNetworkAssembler):
             # We don't yet have client-consumable HOCON content, so we need to re-assemble
             # to send that back as a parting gift.
             assembler = HoconAgentNetworkAssembler(DEMO_MODE)
             hocon_text: str = assembler.assemble_agent_network(
                 network_def, top_agent_name, the_agent_network_name, sample_queries
             )
-            sly_data[AGENT_NETWORK_HOCON_TEXT] = hocon_text
+        sly_data[AGENT_NETWORK_HOCON_TEXT] = hocon_text
 
         logger.info(">>>>>>>>>>>>>>>>>>>DONE !!!>>>>>>>>>>>>>>>>>>")
         return (
