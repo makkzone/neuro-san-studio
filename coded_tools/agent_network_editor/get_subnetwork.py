@@ -76,6 +76,7 @@ class GetSubnetwork(CodedTool):
             logger.info("Manifest file: %s", str(manifest_file))
 
             # What is returned is mapping from storage type -> (name -> AgentNetwork mapping)
+            # DEF - synchronous file access in async invoke
             restorer = RegistryManifestRestorer(manifest_file)
             networks_by_storage: dict[str, dict[str, AgentNetwork]] = restorer.restore()
             logger.info("Successfully loaded agent networks info from %s", str(manifest_file))
