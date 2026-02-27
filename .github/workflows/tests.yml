@@ -14,7 +14,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    iif: >
+    if: >
       (github.event_name == 'push' && github.ref != 'refs/heads/main') ||
       (github.event_name == 'pull_request' && github.base_ref == 'main')
     container:
@@ -41,7 +41,7 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: |
-          apt-get update && apt-get install -y shellcheck make ca-certificates curl libssl3
+          apt-get update && apt-get install -y shellcheck make curl
           python -m venv venv
           source venv/bin/activate
           pip install -r requirements-build.txt
@@ -60,12 +60,14 @@ jobs:
         run: |
           source venv/bin/activate 
           make lint-check
-
-      - name: Run link checker
-        uses: lycheeverse/lychee-action@v2
-        with:
-          args: '--exclude-path venv ./**/*.md'
-          fail: true
+      
+      - name: Run dead link checker
+        shell: bash
+        run: |
+          curl --silent --location \
+            https://github.com/lycheeverse/lychee/releases/download/lychee-v0.23.0/lychee-x86_64-unknown-linux-gnu.tar.gz \
+            | tar --extract --gzip
+          ./lychee --no-progress --exclude-path venv './**/*.md'
 
       - name: Run make test
         shell: bash
