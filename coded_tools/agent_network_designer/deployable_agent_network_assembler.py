@@ -49,6 +49,7 @@ class DeployableAgentNetworkAssembler(AgentNetworkAssembler):
         aaosa_file: str = file_of_class.get_file_in_basis("../../registries/aaosa.hocon")
         self.aaosa_defs: dict[str, Any] = persistence.restore(file_reference=aaosa_file)
 
+    # pylint: disable=too-many-locals
     def assemble_agent_network(
         self, network_def: dict[str, Any], top_agent_name: str, agent_network_name: str, sample_queries: list[str]
     ) -> dict[str, Any]:
