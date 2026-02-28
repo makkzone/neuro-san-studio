@@ -91,7 +91,6 @@ class LangfusePlugin:
         - Debug settings
         """
         # Lazily load Langfuse class
-        # pylint: disable=invalid-name
         Langfuse: Type[Any] = ResolverUtil.create_type(
             "langfuse.Langfuse",
             raise_if_not_found=False,
@@ -126,7 +125,7 @@ class LangfusePlugin:
             # Patch OpenAI module globally to use Langfuse's instrumented version
             self._patch_openai_module()
                 
-        except Exception as exc:  # pragma: no cover
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             self._logger.error("Failed to configure Langfuse client: %s", exc)
 
     @staticmethod
@@ -150,7 +149,7 @@ class LangfusePlugin:
                 print("[Langfuse] OpenAI module globally patched for automatic tracing")
             else:
                 print("[Langfuse] Warning: langfuse.openai module structure unexpected")
-        except Exception as exc:  # pragma: no cover
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             print(f"[Langfuse] Failed to patch OpenAI module: {exc}")
 
     @staticmethod
@@ -183,7 +182,7 @@ class LangfusePlugin:
             
             self._instrument_sdks()
             return True
-        except Exception as exc:  # pragma: no cover
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             self._logger.info("Langfuse setup failed: %s", exc)
             return False
 
@@ -219,8 +218,8 @@ class LangfusePlugin:
         public_key = os.getenv("LANGFUSE_PUBLIC_KEY")
         
         if not secret_key or not public_key:
-            print(f"[Langfuse] ERROR: LANGFUSE_ENABLED=true but API keys not configured!")
-            print(f"[Langfuse] Please set LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY in your .env file")
+            print("[Langfuse] ERROR: LANGFUSE_ENABLED=true but API keys not configured!")
+            print("[Langfuse] Please set LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY in your .env file")
             print(f"[Langfuse] Get your keys from: {os.getenv('LANGFUSE_HOST', 'https://cloud.langfuse.com')}")
             self._logger.error("Langfuse enabled but API keys not configured")
             return
@@ -243,7 +242,7 @@ class LangfusePlugin:
             else:
                 print(f"[Langfuse] Setup failed (PID={os.getpid()})")
             print(f"[Langfuse] Initialization complete (PID={os.getpid()})")
-        except Exception as exc:  # pragma: no cover
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             print(f"[Langfuse] Initialization FAILED: {exc} (PID={os.getpid()})")
             self._logger.warning("Langfuse initialization failed: %s", exc)
 
@@ -292,7 +291,6 @@ class LangfusePlugin:
 
         try:
             # Lazily load CallbackHandler
-            # pylint: disable=invalid-name
             CallbackHandler: Type[Any] = ResolverUtil.create_type(
                 "langfuse.callback.CallbackHandler",
                 raise_if_not_found=False,
@@ -302,7 +300,7 @@ class LangfusePlugin:
             if CallbackHandler is not None:
                 return CallbackHandler()
             return None
-        except Exception as exc:  # pragma: no cover
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             self._logger.warning("Failed to create Langfuse callback handler: %s", exc)
             return None
 
@@ -312,7 +310,7 @@ class LangfusePlugin:
             try:
                 self.langfuse_client.flush()
                 print("[Langfuse] Flushed pending traces")
-            except Exception as exc:  # pragma: no cover
+            except Exception as exc:  # pylint: disable=broad-exception-caught
                 self._logger.warning("Failed to flush Langfuse traces: %s", exc)
 
     def shutdown(self) -> None:
@@ -323,5 +321,5 @@ class LangfusePlugin:
                 self.langfuse_client.flush()
                 self._initialized = False
                 print("[Langfuse] Shutdown complete")
-            except Exception as exc:  # pragma: no cover
+            except Exception as exc:  # pylint: disable=broad-exception-caught
                 self._logger.warning("Failed to shutdown Langfuse cleanly: %s", exc)
